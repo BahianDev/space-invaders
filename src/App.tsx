@@ -1,14 +1,8 @@
-import { useEffect, useRef } from 'react';
-import { startGame } from './game';
+import { useRef } from 'react';
+import { useSpaceInvaders } from './hooks/useSpaceInvaders';
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => {
-    if (canvasRef.current) {
-      startGame({ canvas: canvasRef.current, autoPlay: true });
-    }
-  }, []);
-
+  useSpaceInvaders(canvasRef, { autoPlay: true });
   return <canvas ref={canvasRef} />;
 }
