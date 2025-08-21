@@ -11,7 +11,6 @@ export default class Player extends SheetSprite {
   private canvasWidth: number;
   private canvasHeight: number;
   private bulletImg: HTMLImageElement;
-  private playSound: (name: string) => void;
   private isKeyDown: (key: number) => boolean;
   private wasKeyPressed: (key: number) => boolean;
   private keys: { left: number; right: number; shoot: number };
@@ -23,7 +22,6 @@ export default class Player extends SheetSprite {
     canvasWidth: number,
     canvasHeight: number,
     bulletImg: HTMLImageElement,
-    playSound: (name: string) => void,
     isKeyDown: (key: number) => boolean,
     wasKeyPressed: (key: number) => boolean,
     keys: { left: number; right: number; shoot: number },
@@ -38,7 +36,6 @@ export default class Player extends SheetSprite {
     this.canvasWidth = canvasWidth;
     this.canvasHeight = canvasHeight;
     this.bulletImg = bulletImg;
-    this.playSound = playSound;
     this.isKeyDown = isKeyDown;
     this.wasKeyPressed = wasKeyPressed;
     this.keys = keys;
@@ -60,7 +57,6 @@ export default class Player extends SheetSprite {
       1000,
     );
     this.bullets.push(bullet);
-    this.playSound("shoot");
   }
 
   handleInput() {
