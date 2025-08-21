@@ -5,11 +5,11 @@ import {
   ClipRect,
   getRandomArbitrary,
   clamp,
-  valueInRange,
   checkRectCollision,
-  Point2D,
-  Rect,
 } from "./utils";
+import Player from "./entities/Player";
+import Enemy from "./entities/Enemy";
+import ParticleExplosion from "./entities/ParticleExplosion";
 
 export interface InvadersOptions {
   selector?: string;
@@ -69,378 +69,6 @@ export function startGame(options: InvadersOptions = {}) {
   let wave = 1;
   let hasGameStarted = false;
 
-  // ###################################################################
-  // Entities
-  // ###################################################################
-  class BaseSprite {
-    img: HTMLImageElement;
-    position: Point2D;
-    scale: Point2D;
-    bounds: Rect;
-    doLogic: boolean;
-    constructor(img: HTMLImageElement, x: number, y: number) {
-      this.img = img;
-      this.position = new Point2D(x, y);
-      this.scale = new Point2D(1, 1);
-      this.bounds = new Rect(x, y, this.img.width, this.img.height);
-      this.doLogic = true;
-    }
-
-    update(dt: number) {}
-
-    _updateBounds() {
-      this.bounds.set(
-        this.position.x,
-        this.position.y,
-        ~~(0.5 + this.img.width * this.scale.x),
-        ~~(0.5 + this.img.height * this.scale.y),
-      );
-    }
-
-    _drawImage() {
-      ctx.drawImage(this.img, this.position.x, this.position.y);
-    }
-
-    draw(resized: boolean) {
-      this._updateBounds();
-      this._drawImage();
-    }
-  }
-
-  class SheetSprite extends BaseSprite {
-    clipRect: ClipRect;
-
-    constructor(
-      sheetImg: HTMLImageElement,
-      clipRect: ClipRect,
-      x: number,
-      y: number,
-    ) {
-      super(sheetImg, x, y);
-      this.clipRect = clipRect;
-      this.bounds.set(x, y, this.clipRect.w, this.clipRect.h);
-    }
-
-    update(dt: any) {}
-
-    _updateBounds() {
-      const w = ~~(0.5 + this.clipRect.w * this.scale.x);
-      const h = ~~(0.5 + this.clipRect.h * this.scale.y);
-      this.bounds.set(this.position.x - w / 2, this.position.y - h / 2, w, h);
-    }
-
-    _drawImage() {
-      ctx.save();
-      ctx.transform(
-        this.scale.x,
-        0,
-        0,
-        this.scale.y,
-        this.position.x,
-        this.position.y,
-      );
-      ctx.drawImage(
-        this.img,
-        this.clipRect.x,
-        this.clipRect.y,
-        this.clipRect.w,
-        this.clipRect.h,
-        ~~(0.5 + -this.clipRect.w * 0.5),
-        ~~(0.5 + -this.clipRect.h * 0.5),
-        this.clipRect.w,
-        this.clipRect.h,
-      );
-      ctx.restore();
-    }
-
-    draw(resized: boolean) {
-      super.draw(resized);
-    }
-  }
-
-  class Player extends SheetSprite {
-    lives: number;
-    xVel: number;
-    bullets: any[];
-    bulletDelayAccumulator: number;
-    score: number;
-    constructor() {
-      super(
-        spriteSheetImg,
-        PLAYER_CLIP_RECT,
-        CANVAS_WIDTH / 2,
-        CANVAS_HEIGHT - 70,
-      );
-      this.scale.set(0.85, 0.85);
-      this.lives = 3;
-      this.xVel = 0;
-      this.bullets = [];
-      this.bulletDelayAccumulator = 0;
-      this.score = 0;
-    }
-
-    reset() {
-      this.lives = 3;
-      this.score = 0;
-      this.position.set(CANVAS_WIDTH / 2, CANVAS_HEIGHT - 70);
-    }
-
-    shoot() {
-      const bullet = new Bullet(
-        this.position.x,
-        this.position.y - this.bounds.h / 2,
-        1,
-        1000,
-      );
-      this.bullets.push(bullet);
-      playSound("shoot");
-    }
-
-    handleInput() {
-      if (isKeyDown(LEFT_KEY)) {
-        this.xVel = -175;
-      } else if (isKeyDown(RIGHT_KEY)) {
-        this.xVel = 175;
-      } else this.xVel = 0;
-
-      if (wasKeyPressed(SHOOT_KEY)) {
-        if (this.bulletDelayAccumulator > 0.5) {
-          this.shoot();
-          this.bulletDelayAccumulator = 0;
-        }
-      }
-    }
-
-    updateBullets(dt: number) {
-      for (let i = this.bullets.length - 1; i >= 0; i--) {
-        let bullet = this.bullets[i];
-        if (bullet.alive) {
-          bullet.update(dt);
-        } else {
-          this.bullets.splice(i, 1);
-          bullet = undefined;
-        }
-      }
-    }
-
-    update(dt: number) {
-      // update time passed between shots
-      this.bulletDelayAccumulator += dt;
-
-      // apply x vel
-      this.position.x += this.xVel * dt;
-
-      // cap player position in screen bounds
-      this.position.x = clamp(
-        this.position.x,
-        this.bounds.w / 2,
-        CANVAS_WIDTH - this.bounds.w / 2,
-      );
-      this.updateBullets(dt);
-    }
-
-    draw(resized: boolean) {
-      super.draw(resized);
-
-      // draw bullets
-      for (let i = 0, len = this.bullets.length; i < len; i++) {
-        const bullet = this.bullets[i];
-        if (bullet.alive) {
-          bullet.draw(resized);
-        }
-      }
-    }
-  }
-
-  class Bullet extends BaseSprite {
-    direction: number;
-    speed: number;
-    alive: boolean;
-
-    constructor(x: number, y: number, direction: number, speed: number) {
-      super(bulletImg, x, y);
-      this.direction = direction;
-      this.speed = speed;
-      this.alive = true;
-    }
-
-    update(dt: number) {
-      this.position.y -= this.speed * this.direction * dt;
-
-      if (this.position.y < 0) {
-        this.alive = false;
-      }
-    }
-
-    draw(resized: boolean) {
-      super.draw(resized);
-    }
-  }
-
-  class Enemy extends SheetSprite {
-    clipRects: ClipRect[];
-    onFirstState: boolean;
-    stepDelay: number;
-    stepAccumulator: number;
-    doShoot: boolean;
-    bullet?: Bullet;
-    alive: boolean;
-
-    constructor(clipRects: ClipRect[], x: number, y: number) {
-      super(spriteSheetImg, clipRects[0], x, y);
-      this.clipRects = clipRects;
-      this.scale.set(0.5, 0.5);
-      this.alive = true;
-      this.onFirstState = true;
-      this.stepDelay = 1; // try 2 secs to start with...
-      this.stepAccumulator = 0;
-      this.doShoot = false;
-      this.bullet = undefined;
-    }
-
-    toggleFrame() {
-      this.onFirstState = !this.onFirstState;
-      this.clipRect = this.onFirstState ? this.clipRects[0] : this.clipRects[1];
-    }
-
-    shoot() {
-      this.bullet = new Bullet(
-        this.position.x,
-        this.position.y + this.bounds.w / 2,
-        -1,
-        500,
-      );
-    }
-
-    update(dt: number) {
-      this.stepAccumulator += dt;
-
-      if (this.stepAccumulator >= this.stepDelay) {
-        if (this.position.x < this.bounds.w / 2 + 20 && alienDirection < 0) {
-          updateAlienLogic = true;
-        }
-        if (
-          alienDirection === 1 &&
-          this.position.x > CANVAS_WIDTH - this.bounds.w / 2 - 20
-        ) {
-          updateAlienLogic = true;
-        }
-        if (this.position.y > CANVAS_WIDTH - 50) {
-          reset();
-        }
-
-        const fireTest = Math.floor(Math.random() * (this.stepDelay + 1));
-        if (getRandomArbitrary(0, 1000) <= 5 * (this.stepDelay + 1)) {
-          this.doShoot = true;
-        }
-        this.position.x += 10 * alienDirection;
-        this.toggleFrame();
-        this.stepAccumulator = 0;
-      }
-      this.position.y += alienYDown;
-
-      if (this.bullet && this.bullet.alive) {
-        this.bullet.update(dt);
-      } else {
-        this.bullet = undefined;
-      }
-    }
-
-    draw(resized: boolean) {
-      super.draw(resized);
-      if (this.bullet !== undefined && this.bullet.alive) {
-        this.bullet.draw(resized);
-      }
-    }
-  }
-
-  class ParticleExplosion {
-    particlePool: any[];
-    particles: any[];
-
-    constructor() {
-      this.particlePool = [];
-      this.particles = [];
-    }
-
-    draw() {
-      for (let i = this.particles.length - 1; i >= 0; i--) {
-        const particle = this.particles[i];
-        particle.moves++;
-        particle.x += particle.xunits;
-        particle.y += particle.yunits + particle.gravity * particle.moves;
-        particle.life--;
-
-        if (particle.life <= 0) {
-          if (this.particlePool.length < 100) {
-            this.particlePool.push(this.particles.splice(i, 1));
-          } else {
-            this.particles.splice(i, 1);
-          }
-        } else {
-          ctx.globalAlpha = particle.life / particle.maxLife;
-          ctx.fillStyle = particle.color;
-          ctx.fillRect(particle.x, particle.y, particle.width, particle.height);
-          ctx.globalAlpha = 1;
-        }
-      }
-    }
-
-    createExplosion(
-      x: number,
-      y: number,
-      color: string,
-      number: number,
-      width: number,
-      height: number,
-      spd: number,
-      grav: number,
-      lif: number,
-    ) {
-      for (let i = 0; i < number; i++) {
-        const angle = Math.floor(Math.random() * 360);
-        const speed = Math.floor((Math.random() * spd) / 2) + spd;
-        const life = Math.floor(Math.random() * lif) + lif / 2;
-        const radians = (angle * Math.PI) / 180;
-        const xunits = Math.cos(radians) * speed;
-        const yunits = Math.sin(radians) * speed;
-
-        if (this.particlePool.length > 0) {
-          const tempParticle = this.particlePool.pop();
-          tempParticle.x = x;
-          tempParticle.y = y;
-          tempParticle.xunits = xunits;
-          tempParticle.yunits = yunits;
-          tempParticle.life = life;
-          tempParticle.color = color;
-          tempParticle.width = width;
-          tempParticle.height = height;
-          tempParticle.gravity = grav;
-          tempParticle.moves = 0;
-          tempParticle.alpha = 1;
-          tempParticle.maxLife = life;
-          this.particles.push(tempParticle);
-        } else {
-          this.particles.push({
-            x: x,
-            y: y,
-            xunits: xunits,
-            yunits: yunits,
-            life: life,
-            color: color,
-            width: width,
-            height: height,
-            gravity: grav,
-            moves: 0,
-            alpha: 1,
-            maxLife: life,
-          });
-        }
-      }
-    }
-  }
-
-  // ###################################################################
   // Initialization functions
   // ###################################################################
   function initCanvas() {
@@ -497,8 +125,19 @@ export function startGame(options: InvadersOptions = {}) {
 
   function initGame() {
     aliens = [];
-    player = new Player();
-    particleManager = new ParticleExplosion();
+    player = new Player(
+      ctx,
+      spriteSheetImg,
+      PLAYER_CLIP_RECT,
+      CANVAS_WIDTH,
+      CANVAS_HEIGHT,
+      bulletImg,
+      playSound,
+      isKeyDown,
+      wasKeyPressed,
+      { left: LEFT_KEY, right: RIGHT_KEY, shoot: SHOOT_KEY },
+    );
+    particleManager = new ParticleExplosion(ctx);
     setupAlienFormation();
     drawBottomHud();
   }
@@ -524,6 +163,9 @@ export function startGame(options: InvadersOptions = {}) {
       }
       aliens.push(
         new Enemy(
+          ctx,
+          spriteSheetImg,
+          bulletImg,
           clipRects,
           CANVAS_WIDTH / 2 -
             ALIEN_SQUAD_WIDTH / 2 +
@@ -587,7 +229,15 @@ export function startGame(options: InvadersOptions = {}) {
       if (alien.stepDelay <= 0.05) {
         alien.stepDelay = 0.05;
       }
-      alien.update(dt);
+      alien.update(dt, {
+        alienDirection,
+        setUpdateAlienLogic: () => {
+          updateAlienLogic = true;
+        },
+        canvasWidth: CANVAS_WIDTH,
+        reset,
+        alienYDown,
+      });
 
       if (alien.doShoot) {
         alien.doShoot = false;
