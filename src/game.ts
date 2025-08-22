@@ -72,13 +72,23 @@ export class Game {
       }
     });
 
-    window.addEventListener("resize", () => resize(this.canvas, this.ctx, this.width, this.height));
+    window.addEventListener("resize", () =>
+      resize(this.canvas, this.ctx, this.width, this.height),
+    );
     this.resize();
-    this.animate();
 
-    if (options.autoPlay) {
-      this.initGame();
-      this.hasGameStarted = true;
+    const start = () => {
+      if (options.autoPlay) {
+        this.initGame();
+        this.hasGameStarted = true;
+      }
+      this.animate();
+    };
+
+    if (this.spriteSheetImg.complete) {
+      start();
+    } else {
+      this.spriteSheetImg.addEventListener("load", start);
     }
   }
 
