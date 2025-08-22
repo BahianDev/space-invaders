@@ -1,6 +1,7 @@
 import SheetSprite from "./SheetSprite";
 import Bullet from "./Bullet";
 import { ClipRect, clamp } from "../utils";
+import { playShootSound } from "../sound";
 
 export default class Player extends SheetSprite {
   lives: number;
@@ -57,6 +58,7 @@ export default class Player extends SheetSprite {
       1000,
     );
     this.bullets.push(bullet);
+    playShootSound();
   }
 
   handleInput() {

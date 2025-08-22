@@ -1,6 +1,7 @@
 import SheetSprite from "./SheetSprite";
 import Bullet from "./Bullet";
 import { ClipRect, getRandomArbitrary } from "../utils";
+import { playShootSound } from "../sound";
 
 export interface EnemyUpdateOptions {
   alienDirection: number;
@@ -54,6 +55,7 @@ export default class Enemy extends SheetSprite {
       -1,
       500,
     );
+    playShootSound();
   }
 
   update(dt: number, opts: EnemyUpdateOptions) {
