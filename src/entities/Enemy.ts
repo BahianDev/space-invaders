@@ -1,7 +1,7 @@
 import SheetSprite from "./SheetSprite";
 import Bullet from "./Bullet";
 import { ClipRect, getRandomArbitrary } from "../utils";
-import { playShootSound } from "../sound";
+import { playInvaderKilledSound, playShootSound } from "../sound";
 
 export interface EnemyUpdateOptions {
   alienDirection: number;
@@ -55,7 +55,6 @@ export default class Enemy extends SheetSprite {
       -1,
       500,
     );
-    playShootSound();
   }
 
   update(dt: number, opts: EnemyUpdateOptions) {
@@ -75,7 +74,6 @@ export default class Enemy extends SheetSprite {
         opts.reset();
       }
 
-      const fireTest = Math.floor(Math.random() * (this.stepDelay + 1));
       if (getRandomArbitrary(0, 1000) <= 5 * (this.stepDelay + 1)) {
         this.doShoot = true;
       }
@@ -87,6 +85,7 @@ export default class Enemy extends SheetSprite {
 
     if (this.bullet && this.bullet.alive) {
       this.bullet.update(dt);
+    
     } else {
       this.bullet = undefined;
     }

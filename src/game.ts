@@ -5,6 +5,7 @@ import { ClipRect, checkRectCollision } from "./utils";
 import Player from "./entities/Player";
 import Enemy from "./entities/Enemy";
 import ParticleExplosion from "./entities/ParticleExplosion";
+import { playInvaderKilledSound } from "./sound";
 
 export interface InvadersOptions {
   selector?: string;
@@ -249,6 +250,7 @@ export function startGame(options: InvadersOptions = {}) {
       for (let j = 0, alen = aliens.length; j < alen; j++) {
         const alien = aliens[j];
         if (checkRectCollision(bullet.bounds, alien.bounds)) {
+          playInvaderKilledSound()
           alien.alive = bullet.alive = false;
           particleManager.createExplosion(
             alien.position.x,
